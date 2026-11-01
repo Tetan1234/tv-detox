@@ -93,7 +93,7 @@ public class MainActivity extends Activity {
     private static final String ADD = "add";
     private static final String[] EDIT_ITEMS = {"Move", "Replace", "Remove from home", "Uninstall"};
     private static final String[] EDIT_ITEMS_SYSTEM = {"Move", "Replace", "Remove from home", "App info"};
-    private static final int PER_ROW = 6, MAX_INPUTS = 4;
+    private static final int PER_ROW = 5, MAX_INPUTS = 4;
 
     // Settings shortcuts: name, label, icon. Tile keys are QUICK + name.
     private static final String QUICK = "quick:";
@@ -119,9 +119,9 @@ public class MainActivity extends Activity {
     private static final int MARGIN = 96, GAP = 36, RADIUS = 36;
     // The focus lift: the tile grows, rises, brightens and rounds off a little, then settles.
     // Long enough to read as motion, short enough that a run of d-pad presses never feels behind.
-    private static final int FOCUS_MS = 180, RADIUS_UP = 10;
+    private static final int FOCUS_MS = 240, RADIUS_UP = 10;
     private static final Interpolator FOCUS_EASE = new DecelerateInterpolator(1.8f);
-    private static final int ROW1_TOP = 604, ROW_STEP = 224;
+    private static final int ROW1_TOP = 540, ROW_STEP = 224;
     private static final int GRID_MIN_TOP = 400; // more rows push the grid up, but not into the clock
     private static final int ICON_TOP = 76, ICON_BUTTON = 72, ICON_SIZE = 40, ICON_GAP = 12; // level with the date
 
@@ -219,7 +219,7 @@ public class MainActivity extends Activity {
         // The clock follows the TV unless --es clock 12 or 24 says otherwise.
         String clockPref = prefs().getString(PREF_CLOCK, null);
         TextClock time = clock("24".equals(clockPref) ? "H:mm" : "h:mm", "12".equals(clockPref) ? "h:mm" : "H:mm",
-                px(176), Color.WHITE, regular);
+                px(96), Color.WHITE, regular);
         time.setLetterSpacing(-0.028f);
         time.setFontFeatureSettings("tnum");
         time.setIncludeFontPadding(false);
@@ -701,7 +701,7 @@ public class MainActivity extends Activity {
     private void lift(View v, GradientDrawable bg, boolean has, int restColor, int focusColor,
                       int restRadius, int focusRadius) {
         v.animate().cancel();
-        v.animate().scaleX(has ? 1.06f : 1f).scaleY(has ? 1.06f : 1f).translationZ(has ? px(26) : 0)
+        v.animate().scaleX(has ? 1.14f : 1f).scaleY(has ? 1.14f : 1f).translationZ(has ? px(48) : 0)
                 .setDuration(FOCUS_MS).setInterpolator(FOCUS_EASE).withLayer().start();
         tween(v, bg, has, restColor, focusColor, restRadius, focusRadius);
     }
