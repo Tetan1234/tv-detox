@@ -1,0 +1,27 @@
+name: TV Home APK
+on:
+  push:
+    paths: [ 'tvos-home/**', '.github/workflows/tvos-home.yml' ]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tvos-home
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Build
+        run: |
+          curl -sSL -o gradle.zip https://services.gradle.org/distributions/gradle-8.14.3-bin.zip
+          unzip -q gradle.zip
+          ./gradle-8.14.3/bin/gradle --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk tvos-home.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tvos-home
+          path: tvos-home/tvos-home.apk
