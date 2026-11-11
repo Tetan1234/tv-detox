@@ -113,7 +113,7 @@ final class Wallpaper {
     }
 
     /** Simple separable box blur, done a few times ≈ gaussian. Tiny bitmap, so it's instant. */
-    private static void boxBlur(Bitmap b, int radius, int passes) {
+    static void boxBlur(Bitmap b, int radius, int passes) {
         int w = b.getWidth(), h = b.getHeight();
         int[] px = new int[w * h], tmp = new int[w * h];
         b.getPixels(px, 0, w, 0, 0, w, h);
