@@ -118,7 +118,7 @@ public class HomeActivity extends Activity {
         tileW = (screenW - px(88) - px(16) * (COLS - 1)) / COLS;
         tileH = Math.round(tileW * 0.59f);
         prefs = getSharedPreferences("home", MODE_PRIVATE);
-        Wallpaper.build(screenW, screenH);
+        Wallpaper.build(this, screenW, screenH);
 
         FrameLayout root = new FrameLayout(this);
 
@@ -490,7 +490,7 @@ public class HomeActivity extends Activity {
             heroCache.put(a.pkg, bm);
         }
         in.setImageBitmap(bm);
-        in.animate().alpha(.8f).setDuration(450).start();
+        in.animate().alpha(.45f).setDuration(450).start();
     }
 
     private void dimHero(boolean dim) {

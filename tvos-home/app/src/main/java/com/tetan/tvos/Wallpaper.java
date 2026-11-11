@@ -1,6 +1,9 @@
 package com.tetan.tvos;
 
+import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Rect;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
@@ -11,9 +14,9 @@ import android.graphics.Shader;
 import java.util.Random;
 
 /**
- * Paints the night-sky-over-mountains wallpaper once (at half screen size),
- * plus a tiny pre-blurred copy that the glass panels draw behind themselves.
- * Total memory: about 2 MB.
+ * Loads the wallpaper picture (res/drawable-nodpi/wallpaper.jpg) once, plus a tiny
+ * pre-blurred copy that the glass panels draw behind themselves. About 4 MB of RAM.
+ * If the picture can't be loaded, it paints the old night-sky wallpaper instead.
  */
 final class Wallpaper {
 
@@ -22,12 +25,31 @@ final class Wallpaper {
 
     private Wallpaper() { }
 
-    static void build(int screenW, int screenH) {
-        int w = Math.max(16, screenW / 2), h = Math.max(9, screenH / 2);
+    static void build(Context ctx, int screenW, int screenH) {
+        int w = Math.max(16, Math.min(screenW, 1280));
+        int h = Math.max(9, Math.round(w * screenH / (float) Math.max(1, screenW)));
         if (full != null && full.getWidth() == w && full.getHeight() == h) return;
 
         full = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-        paint(new Canvas(full), w, h);
+        Canvas c = new Canvas(full);
+        Bitmap pic = null;
+        try {
+            BitmapFactory.Options o = new BitmapFactory.Options();
+            o.inScaled = false;
+            pic = BitmapFactory.decodeResource(ctx.getResources(), R.drawable.wallpaper, o);
+        } catch (Throwable ignored) { }
+        if (pic != null) {
+            // centre-crop the picture to the screen shape
+            float scale = Math.max(w / (float) pic.getWidth(), h / (float) pic.getHeight());
+            int cw = Math.round(w / scale), ch = Math.round(h / scale);
+            int cx = (pic.getWidth() - cw) / 2, cy = (pic.getHeight() - ch) / 2;
+            c.drawBitmap(pic, new Rect(cx, cy, cx + cw, cy + ch), new Rect(0, 0, w, h),
+                    new Paint(Paint.FILTER_BITMAP_FLAG | Paint.DITHER_FLAG));
+            pic.recycle();
+            shadeEdges(c, w, h);
+        } else {
+            paint(c, w, h);
+        }
 
         Bitmap small = Bitmap.createScaledBitmap(full, Math.max(4, w / 8), Math.max(4, h / 8), true);
         boxBlur(small, 2, 3);
@@ -85,6 +107,15 @@ final class Wallpaper {
         p.setShader(new LinearGradient(0, h * .7f, 0, h, 0, 0x73000000, Shader.TileMode.CLAMP));
         c.drawRect(0, h * .7f, w, h, p);
         p.setShader(null);
+    }
+
+    /** Slightly darker at the top (title, clock) and bottom (app rows) so text stays readable. */
+    private static void shadeEdges(Canvas c, int w, int h) {
+        Paint p = new Paint(Paint.DITHER_FLAG);
+        p.setShader(new LinearGradient(0, 0, 0, h * .32f, 0x4D000000, 0, Shader.TileMode.CLAMP));
+        c.drawRect(0, 0, w, h * .32f, p);
+        p.setShader(new LinearGradient(0, h * .6f, 0, h, 0, 0x66000000, Shader.TileMode.CLAMP));
+        c.drawRect(0, h * .6f, w, h, p);
     }
 
     private static void star(Canvas c, Paint p, Random r, float x, float y, float k) {
