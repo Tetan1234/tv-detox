@@ -485,8 +485,7 @@ public class HomeActivity extends Activity {
             bm = Bitmap.createBitmap(48, 27, Bitmap.Config.ARGB_8888);
             Canvas c = new Canvas(bm);
             c.drawColor(0xFF05060C);
-            a.banner.setBounds(0, 0, 48, 27);
-            a.banner.draw(c);
+            drawCopy(a.banner, c, 48, 27);
             Wallpaper.boxBlur(bm, 2, 3);
             heroCache.put(a.pkg, bm);
         }
@@ -611,6 +610,20 @@ public class HomeActivity extends Activity {
         return "hostname".equals(mode) && AD_DNS.equals(host);
     }
 
+    /** True when a VPN (e.g. Tailscale with MagicDNS) supplies its own DNS, which overrides Private DNS. */
+    private boolean vpnHasOwnDns() {
+        try {
+            android.net.ConnectivityManager cm = (android.net.ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
+            for (android.net.Network n : cm.getAllNetworks()) {
+                android.net.NetworkCapabilities nc = cm.getNetworkCapabilities(n);
+                if (nc == null || !nc.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN)) continue;
+                android.net.LinkProperties lp = cm.getLinkProperties(n);
+                if (lp != null && !lp.getDnsServers().isEmpty()) return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
     private void toggleAdBlock() {
         boolean on = !adBlockOn();
         try {
@@ -620,7 +633,12 @@ public class HomeActivity extends Activity {
             } else {
                 Settings.Global.putString(getContentResolver(), "private_dns_mode", "opportunistic");
             }
-            Toast.makeText(this, on ? "Ads blocked in all apps" : "Ad blocker off", Toast.LENGTH_SHORT).show();
+            if (on && vpnHasOwnDns()) {
+                Toast.makeText(this, "Ad blocker on, but a VPN (Tailscale) is handling DNS, so it's bypassed. "
+                        + "Set AdGuard DNS in Tailscale, or turn off 'Use Tailscale DNS'.", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, on ? "Ads blocked in all apps" : "Ad blocker off", Toast.LENGTH_SHORT).show();
+            }
         } catch (SecurityException e) {
             Toast.makeText(this, "Run install.sh again to allow the ad blocker", Toast.LENGTH_LONG).show();
         }
@@ -758,11 +776,28 @@ public class HomeActivity extends Activity {
         return v;
     }
 
+    /**
+     * Draws a drawable at a given size WITHOUT touching the original: drawables are shared with
+     * the tiles' ImageViews, and changing their bounds made the tiles draw tiny, glitched images.
+     */
+    private static void drawCopy(Drawable d, Canvas c, int w, int h) {
+        Drawable.ConstantState cs = d.getConstantState();
+        Drawable copy = cs != null ? cs.newDrawable().mutate() : null;
+        if (copy != null) {
+            copy.setBounds(0, 0, w, h);
+            copy.draw(c);
+        } else {                       // no copy possible: draw, then put the old size back
+            android.graphics.Rect old = d.copyBounds();
+            d.setBounds(0, 0, w, h);
+            d.draw(c);
+            d.setBounds(old);
+        }
+    }
+
     private static int averageColor(Drawable d) {
         try {
             Bitmap bm = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888);
-            d.setBounds(0, 0, 8, 8);
-            d.draw(new Canvas(bm));
+            drawCopy(d, new Canvas(bm), 8, 8);
             long r = 0, g = 0, b = 0, n = 0;
             for (int y = 0; y < 8; y++) for (int x = 0; x < 8; x++) {
                 int p = bm.getPixel(x, y);
